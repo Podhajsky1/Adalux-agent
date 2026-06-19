@@ -125,6 +125,44 @@ async def call_test(req: TestCallRequest):
     return result
 
 
+class TestEntry(BaseModel):
+    phone: str
+    name: str = "TEST"
+
+
+class TestBatchRequest(BaseModel):
+    entries: list[TestEntry]
+    product: str = "lighting"
+    delay: int = 30
+
+
+@app.post("/campaign/test")
+async def campaign_test(req: TestBatchRequest, bg: BackgroundTasks):
+    """Postupně zavolá na seznam vlastních testovacích čísel (mimo databázi obcí)."""
+    if not req.entries:
+        return {"started": False, "reason": "Seznam čísel je prázdný"}
+    bg.add_task(_run_test_campaign, req.entries, req.product, req.delay)
+    return {"started": True, "count": len(req.entries)}
+
+
+async def _run_test_campaign(entries: list[TestEntry], product: str, delay: int):
+    for entry in entries:
+        try:
+            fake_row = {
+                "id": -1,
+                "name": entry.name,
+                "phone": entry.phone,
+                "kraj": "TEST",
+                "email": "",
+                "population": 0,
+            }
+            print(f"[TEST CALL] {entry.name} @ {entry.phone}")
+            await _initiate_call(fake_row, product)
+        except Exception as e:
+            print(f"[ERROR] {entry.name} ({entry.phone}): {e}")
+        await asyncio.sleep(delay)
+
+
 async def _initiate_call(row: dict, product: str) -> dict:
     session = CallSession(municipality_row=row, product=product)
     call_id = uuid.uuid4().hex[:8]
@@ -376,6 +414,26 @@ async def dashboard():
 </div>
 
 <div class="card">
+  <h3 style="color:#f0c040;margin:0 0 14px">🧪 Test na vlastní čísla</h3>
+  <p style="margin:0 0 10px">Pro testování na konkrétní lidi (kolegové, známí) — mimo databázi obcí, nezapisuje se do statistik obcí.</p>
+  <label>Čísla (formát: Jméno,+420XXXXXXXXX — každé na nový řádek)</label>
+  <textarea id="testNumbers" placeholder="Petr,+420604101557&#10;Jana,+420607071081" style="height:90px"></textarea>
+  <div class="row">
+    <div>
+      <label>Produkt</label>
+      <select id="testProduct"><option value="lighting">☀️ Solární osvětlení</option>
+        <option value="charging">⚡ Nabíjecí stanice</option></select>
+    </div>
+    <div>
+      <label>Pauza mezi hovory (sekundy)</label>
+      <input type="number" id="testDelay" value="30" min="5">
+    </div>
+  </div>
+  <button onclick="startTestCampaign()">🧪 Spustit testovací hovory</button>
+  <div id="testStatus"></div>
+</div>
+
+<div class="card">
   <h3 style="color:#f0c040;margin:0 0 14px">✏️ Skript hovoru (system prompt)</h3>
   <p style="margin:0 0 10px">Upravíš zde — uloží se okamžitě, bez nutnosti nasazení.</p>
   <textarea class="prompt-edit" id="promptText"></textarea>
@@ -416,6 +474,28 @@ async function startCampaign(){
   const r = await fetch('/campaign/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   const d = await r.json();
   document.getElementById('status').textContent = d.started ? `✅ Spuštěno ${d.count} hovorů` : `⚠️ ${d.reason}`;
+}
+
+async function startTestCampaign(){
+  const raw = document.getElementById('testNumbers').value.split('\\n').map(s=>s.trim()).filter(Boolean);
+  if(!raw.length){ document.getElementById('testStatus').textContent='⚠️ Zadej alespoň jedno číslo'; return; }
+
+  const entries = raw.map(line=>{
+    const parts = line.split(',').map(p=>p.trim());
+    if(parts.length >= 2) return {name: parts[0], phone: parts[1]};
+    return {name: 'TEST', phone: parts[0]};
+  });
+
+  const body = {
+    entries,
+    product: document.getElementById('testProduct').value,
+    delay: parseInt(document.getElementById('testDelay').value) || 30,
+  };
+
+  document.getElementById('testStatus').textContent = '⏳ Spouštím testovací hovory...';
+  const r = await fetch('/campaign/test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const d = await r.json();
+  document.getElementById('testStatus').textContent = d.started ? `✅ Spuštěno ${d.count} testovacích hovorů (pauza ${body.delay}s mezi hovory)` : `⚠️ ${d.reason}`;
 }
 
 async function loadPrompt(){
