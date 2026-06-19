@@ -90,7 +90,12 @@ class CallSession:
 # ── Core functions ────────────────────────────────────────────────────────
 
 def opening_speech(session: CallSession) -> str:
-    """První slova při zvednutí hovoru (na úřad, ne přímo starostovi). Vždy zmiňuje OBA produkty."""
+    """První slova při zvednutí hovoru (na úřad, ne přímo starostovi). Vždy zmiňuje OBA produkty.
+
+    KRITICKÉ: Tato úvodní věta se musí zapsat i do session.history, ne jen do
+    transcript - jinak Haiku při první generate_response() neví, že už se
+    představil, a podle vzoru v promptu se představí znovu (duplicitní úvod).
+    """
     speech = (
         f"Dobrý den, jmenuji se Jana Nováková a volám z firmy Adalux. "
         f"Jsme český výrobce {COMBINED_INTRO}, třeba na cyklostezky nebo do parků. "
@@ -98,6 +103,26 @@ def opening_speech(session: CallSession) -> str:
         f"případně s někým, kdo to má na starosti?"
     )
     session.transcript.append(("agent", speech))
+
+    # Seed historie - syntetický "user" trigger reprezentující navázání hovoru,
+    # následovaný skutečnou úvodní větou jako "assistant" tah ve stejném JSON
+    # formátu, jaký model dál používá. Tím model VÍ, že úvod už zazněl.
+    session.history.append({"role": "user", "content": "[Hovor byl právě navázán a spojen s úřadem.]"})
+    session.history.append({
+        "role": "assistant",
+        "content": json.dumps({
+            "speech": speech,
+            "stage": "intro",
+            "outcome": "ongoing",
+            "mayor_name": None,
+            "meeting_date": None,
+            "meeting_time": None,
+            "meeting_place": None,
+            "callback_date": None,
+            "notes": "",
+        }, ensure_ascii=False),
+    })
+
     return speech
 
 
