@@ -262,6 +262,25 @@ async def status():
     }
 
 
+@app.get("/debug/config")
+async def debug_config():
+    """DOČASNÝ diagnostický endpoint - ukáže stav proměnných bez prozrazení celého klíče."""
+    sid = settings.TWILIO_ACCOUNT_SID
+    token = settings.TWILIO_AUTH_TOKEN
+    phone = settings.TWILIO_PHONE_NUMBER
+    return {
+        "sid_length": len(sid),
+        "sid_preview": sid[:6] + "..." if len(sid) > 6 else sid,
+        "sid_starts_with_AC": sid.startswith("AC"),
+        "sid_has_quotes": '"' in sid or "'" in sid,
+        "token_length": len(token),
+        "token_has_quotes": '"' in token or "'" in token,
+        "phone_value": phone,
+        "phone_has_quotes": '"' in phone or "'" in phone,
+        "base_url": settings.BASE_URL,
+    }
+
+
 @app.get("/municipality/search")
 async def municipality_search(q: str):
     return database.search_municipalities(q)
