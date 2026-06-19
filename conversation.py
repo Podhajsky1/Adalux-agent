@@ -118,7 +118,7 @@ def generate_response(session: CallSession, user_speech: str) -> dict:
 
     response = _client.messages.create(
         model=CALL_MODEL,
-        max_tokens=250,
+        max_tokens=500,
         system=system,
         messages=messages,
     )
@@ -126,11 +126,36 @@ def generate_response(session: CallSession, user_speech: str) -> dict:
     raw = "".join(b.text for b in response.content if hasattr(b, "text")).strip()
     clean = re.sub(r"^```json\s*|```$", "", raw, flags=re.MULTILINE).strip()
 
+    data = None
+    # 1. pokus - přímý parse
     try:
         data = json.loads(clean)
     except json.JSONDecodeError:
+        pass
+
+    # 2. pokus - vytáhnout { ... } blok a zkusit naparsovat ten
+    if data is None:
         m = re.search(r"\{[\s\S]*\}", clean)
-        data = json.loads(m.group(0)) if m else {"speech": raw, "outcome": "ongoing"}
+        if m:
+            try:
+                data = json.loads(m.group(0))
+            except json.JSONDecodeError:
+                pass
+
+    # 3. pokus (záchranná síť) - i z neúplného/poškozeného JSONu vytáhnout
+    # jen samotnou hodnotu pole "speech" regulárním výrazem, ať se NIKDY
+    # nepřečte nahlas syrový JSON s uvozovkami a závorkami.
+    if data is None:
+        m = re.search(r'"speech"\s*:\s*"((?:[^"\\]|\\.)*)"', clean)
+        if m:
+            extracted = m.group(1).replace('\\n', ' ').replace('\\"', '"')
+            data = {"speech": extracted, "outcome": "ongoing"}
+        else:
+            # Opravdu nic se nepodařilo vytáhnout - bezpečná obecná odpověď
+            data = {
+                "speech": "Omlouvám se, můžete to prosím zopakovat?",
+                "outcome": "ongoing",
+            }
 
     session.history.append({"role": "user", "content": user_speech})
     session.history.append({"role": "assistant", "content": json.dumps(data, ensure_ascii=False)})
