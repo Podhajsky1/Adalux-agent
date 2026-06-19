@@ -184,22 +184,30 @@ async def webhook_gather(call_sid: str, request: Request):
     if no_input:
         session.no_input_count += 1
         if session.no_input_count >= 2:
-            return _xml(end_call("Nezaslechla jsem vás, zavolám jindy. Na shledanou."))
-        return _xml(gather_response("Promiňte, neslyším vás dobře, mohl/a byste zopakovat?", gather_url))
+            msg = "Nezaslechla jsem vás, zavolám jindy. Na shledanou."
+            session.transcript.append(("agent", msg))
+            return _xml(end_call(msg))
+        msg = "Promiňte, neslyším vás dobře, mohl/a byste zopakovat?"
+        session.transcript.append(("agent", msg))
+        return _xml(gather_response(msg, gather_url))
 
     session.no_input_count = 0
+    # Zaznamenat řeč protistrany HNED, ve správném chronologickém pořadí
+    # (před výplňovou frází, která chronologicky následuje).
+    session.transcript.append(("mayor_or_staff", speech))
 
     if session.turns >= settings.MAX_TURNS:
         session.outcome = "send_email"
-        return _xml(end_call(
-            "Děkuji za váš čas. Zašlu vám naši nabídku emailem. Přeji hezký den, na shledanou."
-        ))
+        msg = "Děkuji za váš čas. Zašlu vám naši nabídku emailem. Přeji hezký den, na shledanou."
+        session.transcript.append(("agent", msg))
+        return _xml(end_call(msg))
 
     # Rychlá odpověď s výplňovou frází, skutečné zpracování (pomalé) přesměrujeme jinam.
     # Tím se maskuje latence volání Claude API - místo ticha slyší volající přirozenou odmlku.
     session.pending_speech = speech
     process_url = f"{settings.BASE_URL}/webhook/process/{call_sid}"
     filler = pick_filler(session.turns)
+    session.transcript.append(("agent", filler))
     return _xml(filler_then_redirect(filler, process_url))
 
 

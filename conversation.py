@@ -114,7 +114,6 @@ def generate_response(session: CallSession, user_speech: str) -> dict:
 
     messages = list(session.history)
     messages.append({"role": "user", "content": user_speech})
-    session.transcript.append(("mayor_or_staff", user_speech))
 
     response = _client.messages.create(
         model=CALL_MODEL,
