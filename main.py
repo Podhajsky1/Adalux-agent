@@ -15,7 +15,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, BackgroundTasks, HTTPException
 from fastapi.responses import Response, JSONResponse, FileResponse, HTMLResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
+import re
 from twilio.rest import Client
 
 from config import settings
@@ -128,6 +129,19 @@ async def call_test(req: TestCallRequest):
 class TestEntry(BaseModel):
     phone: str
     name: str = "TEST"
+
+    @field_validator("phone")
+    @classmethod
+    def validate_czech_phone(cls, v: str) -> str:
+        """Vytáhne čisté +420XXXXXXXXX číslo, odmítne cokoliv jiného (chrání proti
+        zaslání rozbitého stringu jako 'mamka +420604109910' přímo do Twilio."""
+        cleaned = re.sub(r"[^\d+]", "", v)
+        m = re.search(r"\+420\d{9}", cleaned)
+        if not m:
+            raise ValueError(
+                f"Neplatný formát telefonu: '{v}' - očekávám +420XXXXXXXXX (9 číslic po předvolbě)"
+            )
+        return m.group(0)
 
 
 class TestBatchRequest(BaseModel):
@@ -480,11 +494,22 @@ async function startTestCampaign(){
   const raw = document.getElementById('testNumbers').value.split('\\n').map(s=>s.trim()).filter(Boolean);
   if(!raw.length){ document.getElementById('testStatus').textContent='⚠️ Zadej alespoň jedno číslo'; return; }
 
-  const entries = raw.map(line=>{
-    const parts = line.split(',').map(p=>p.trim());
-    if(parts.length >= 2) return {name: parts[0], phone: parts[1]};
-    return {name: 'TEST', phone: parts[0]};
-  });
+  const entries = [];
+  const badLines = [];
+  for(const line of raw){
+    // Vytáhne telefon podle vzoru +420XXXXXXXXX kdekoliv v řádku (nezávisle na čárce/mezeře)
+    const phoneMatch = line.match(/\\+420\\s?\\d{3}\\s?\\d{3}\\s?\\d{3}/);
+    if(!phoneMatch){ badLines.push(line); continue; }
+    const phone = phoneMatch[0].replace(/\\s/g,'');
+    const name = line.replace(phoneMatch[0],'').replace(/[,]/g,'').trim() || 'TEST';
+    entries.push({name, phone});
+  }
+
+  if(badLines.length){
+    document.getElementById('testStatus').textContent = `⚠️ Nerozpoznáno (chybí +420XXXXXXXXX formát): ${badLines.join(' | ')}`;
+    if(!entries.length) return;
+  }
+  if(!entries.length){ document.getElementById('testStatus').textContent='⚠️ Žádné platné číslo nenalezeno'; return; }
 
   const body = {
     entries,
