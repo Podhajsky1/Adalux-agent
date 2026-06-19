@@ -26,7 +26,7 @@ from conversation import (
     get_prompt_template, save_prompt_template,
     full_transcript_text,
 )
-from twiml_builder import gather_response, end_call, voicemail
+from twiml_builder import gather_response, end_call, voicemail, filler_then_redirect
 from call_logger import log_call, get_log_as_rows
 
 # ── App setup ─────────────────────────────────────────────────────────────
@@ -194,6 +194,24 @@ async def webhook_gather(call_sid: str, request: Request):
         return _xml(end_call(
             "Děkuji za váš čas. Zašlu vám naši nabídku emailem. Přeji hezký den, na shledanou."
         ))
+
+    # Rychlá odpověď s výplňovou frází, skutečné zpracování (pomalé) přesměrujeme jinam.
+    # Tím se maskuje latence volání Claude API - místo ticha slyší volající přirozenou odmlku.
+    session.pending_speech = speech
+    process_url = f"{settings.BASE_URL}/webhook/process/{call_sid}"
+    return _xml(filler_then_redirect("Moment, prosím.", process_url))
+
+
+@app.post("/webhook/process/{call_sid}")
+async def webhook_process(call_sid: str):
+    """Skutečné zpracování řeči přes Claude - voláno po krátké výplňové frázi."""
+    session = sessions.get(call_sid)
+    if not session or session.pending_speech is None:
+        return _xml(end_call("Omlouváme se, technická chyba."))
+
+    speech = session.pending_speech
+    session.pending_speech = None
+    gather_url = f"{settings.BASE_URL}/webhook/gather/{call_sid}"
 
     result = await _generate(session, speech)
     agent_speech = result.get("speech", "Omlouváme se, zavoláme jindy.")

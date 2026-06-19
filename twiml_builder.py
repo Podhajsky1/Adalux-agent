@@ -40,12 +40,21 @@ def end_call(speech_text: str) -> str:
     return str(r)
 
 
+def filler_then_redirect(filler_text: str, redirect_url: str) -> str:
+    """Přehraje krátkou výplňovou frázi, pak přesměruje na skutečné zpracování.
+    Maskuje latenci LLM volání - místo ticha slyší volající přirozenou odmlku."""
+    r = VoiceResponse()
+    r.say(filler_text, language=LANGUAGE)
+    r.redirect(redirect_url, method="POST")
+    return str(r)
+
+
 def voicemail(municipality: str, product_label: str) -> str:
     """Leave a short voicemail when answering machine detected."""
     msg = (
-        f"Dobrý den, zde Jana Nováková z firmy ADALUX z Ostravy. "
-        f"Volám ohledně nabídky {product_label} pro obec {municipality}. "
-        f"Rádi bychom vám představili možnost čerpání dotací z EU. "
+        f"Dobrý den, zde Jana Nováková z firmy Adalux. "
+        f"Jsme český výrobce solárního osvětlení a nabíjecích stanic pro e-kola. "
+        f"Volám ohledně nabídky pro obec {municipality}. "
         f"Prosím, navštivte adalux.cz nebo nám zavolejte zpět. "
         f"Děkuji, na shledanou."
     )

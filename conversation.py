@@ -84,6 +84,7 @@ class CallSession:
     transcript: list = field(default_factory=list)   # [(speaker, text), ...] pro Excel log
     turns: int = 0
     no_input_count: int = 0
+    pending_speech: Optional[str] = None  # uloženo mezi filler frází a skutečným zpracováním
 
 
 # ── Core functions ────────────────────────────────────────────────────────
@@ -117,7 +118,7 @@ def generate_response(session: CallSession, user_speech: str) -> dict:
 
     response = _client.messages.create(
         model=CALL_MODEL,
-        max_tokens=400,
+        max_tokens=250,
         system=system,
         messages=messages,
     )
