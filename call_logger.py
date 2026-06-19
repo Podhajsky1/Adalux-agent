@@ -120,13 +120,15 @@ def log_call(
     wb.save(settings.EXCEL_LOG_FILE)
 
     # Zápis stavu zpět do SQLite – zdroj pravdy pro "už voláno"
-    database.update_call_result(
-        municipality_id=municipality_row["id"],
-        outcome=outcome,
-        notes=notes,
-        callback_date=callback_date,
-        mayor_name=mayor_name,
-    )
+    # (testovací hovory s id=-1 do databáze obcí nepatří, přeskočit)
+    if municipality_row.get("id", -1) != -1:
+        database.update_call_result(
+            municipality_id=municipality_row["id"],
+            outcome=outcome,
+            notes=notes,
+            callback_date=callback_date,
+            mayor_name=mayor_name,
+        )
 
 
 def get_log_as_rows() -> list[dict]:
