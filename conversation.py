@@ -44,6 +44,8 @@ PRODUCTS = {
     },
 }
 
+COMBINED_INTRO = "solárního veřejného osvětlení a solárních nabíjecích stanic pro e-kola"
+
 # ── Prompt loading (cached, with hot-reload check) ─────────────────────────
 
 _prompt_cache = {"text": None, "mtime": None}
@@ -87,12 +89,12 @@ class CallSession:
 # ── Core functions ────────────────────────────────────────────────────────
 
 def opening_speech(session: CallSession) -> str:
-    """První slova při zvednutí hovoru (na úřad, ne přímo starostovi)."""
-    prod = PRODUCTS.get(session.product, PRODUCTS["lighting"])["pitch_short"]
+    """První slova při zvednutí hovoru (na úřad, ne přímo starostovi). Vždy zmiňuje OBA produkty."""
     speech = (
-        f"Dobrý den, Jana Nováková z firmy ADALUX, jsme výrobce {prod} z Ostravy. "
-        f"Ráda bych krátce představila naši nabídku panu starostovi nebo paní starostce, "
-        f"máte chvilku mě s ním nebo s ní spojit?"
+        f"Dobrý den, jmenuji se Jana Nováková a volám z firmy Adalux. "
+        f"Jsme český výrobce {COMBINED_INTRO}, třeba na cyklostezky nebo do parků. "
+        f"Mohla bych prosím na chvilku mluvit s panem starostou nebo s paní starostkou, "
+        f"případně s někým, kdo to má na starosti?"
     )
     session.transcript.append(("agent", speech))
     return speech
@@ -154,5 +156,5 @@ def generate_response(session: CallSession, user_speech: str) -> dict:
 
 def full_transcript_text(session: CallSession) -> str:
     """Spojí celý přepis hovoru do jednoho textu pro Excel log."""
-    labels = {"agent": "ADALUX", "mayor_or_staff": "OBEC"}
+    labels = {"agent": "Adalux", "mayor_or_staff": "OBEC"}
     return "\n".join(f"{labels.get(s, s)}: {t}" for s, t in session.transcript)
