@@ -49,11 +49,25 @@ def filler_then_redirect(filler_text: str, redirect_url: str) -> str:
     return str(r)
 
 
+FILLER_PHRASES = [
+    "Moment, prosím.",
+    "Jistě, počkejte chviličku.",
+    "Rozumím, hned to bude.",
+    "Dobře, moment.",
+    "Ano, chviličku.",
+]
+
+
+def pick_filler(turn_number: int) -> str:
+    """Vybere výplňovou frázi podle pořadí tahu, aby se nepoužila stejná pořád."""
+    return FILLER_PHRASES[turn_number % len(FILLER_PHRASES)]
+
+
 def voicemail(municipality: str, product_label: str) -> str:
     """Leave a short voicemail when answering machine detected."""
     msg = (
         f"Dobrý den, zde Jana Nováková z firmy Adalux. "
-        f"Jsme český výrobce solárního osvětlení a nabíjecích stanic pro e-kola. "
+        f"Jsme český výrobce solárního osvětlení a nabíjecích stanic pro elektrokola. "
         f"Volám ohledně nabídky pro obec {municipality}. "
         f"Prosím, navštivte adalux.cz nebo nám zavolejte zpět. "
         f"Děkuji, na shledanou."

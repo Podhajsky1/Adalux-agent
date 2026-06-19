@@ -26,7 +26,7 @@ from conversation import (
     get_prompt_template, save_prompt_template,
     full_transcript_text,
 )
-from twiml_builder import gather_response, end_call, voicemail, filler_then_redirect
+from twiml_builder import gather_response, end_call, voicemail, filler_then_redirect, pick_filler
 from call_logger import log_call, get_log_as_rows
 
 # ── App setup ─────────────────────────────────────────────────────────────
@@ -199,7 +199,8 @@ async def webhook_gather(call_sid: str, request: Request):
     # Tím se maskuje latence volání Claude API - místo ticha slyší volající přirozenou odmlku.
     session.pending_speech = speech
     process_url = f"{settings.BASE_URL}/webhook/process/{call_sid}"
-    return _xml(filler_then_redirect("Moment, prosím.", process_url))
+    filler = pick_filler(session.turns)
+    return _xml(filler_then_redirect(filler, process_url))
 
 
 @app.post("/webhook/process/{call_sid}")

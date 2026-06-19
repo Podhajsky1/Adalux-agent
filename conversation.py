@@ -40,11 +40,11 @@ PRODUCTS = {
     },
     "charging": {
         "label": "Solární nabíjecí stanice",
-        "pitch_short": "solárních nabíjecích stanic pro e-kola a elektromobily",
+        "pitch_short": "solárních nabíjecích stanic pro elektrokola",
     },
 }
 
-COMBINED_INTRO = "solárního veřejného osvětlení a solárních nabíjecích stanic pro e-kola"
+COMBINED_INTRO = "solárního veřejného osvětlení a solárních nabíjecích stanic pro elektrokola"
 
 # ── Prompt loading (cached, with hot-reload check) ─────────────────────────
 
