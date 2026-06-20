@@ -85,6 +85,7 @@ def update_call_result(
         "voicemail": "pending",        # zkusit znovu jindy
         "no_answer": "pending",
         "wrong_person": "pending",
+        "no_response": "pending",      # hovor skončil bez výsledku - zkusit znovu
         "callback_requested": "callback",
     }
     new_status = status_map.get(outcome, "pending")

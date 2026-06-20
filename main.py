@@ -236,6 +236,7 @@ async def webhook_gather(call_sid: str, request: Request):
     if no_input:
         session.no_input_count += 1
         if session.no_input_count >= 2:
+            session.outcome = "no_response"
             msg = "Nezaslechla jsem vás, zavolám jindy. Na shledanou."
             session.transcript.append(("agent", msg))
             return _xml(end_call(msg))
@@ -276,6 +277,11 @@ async def webhook_status(request: Request):
 
     if call_status in ("no-answer", "busy", "failed") and session.outcome == "ongoing":
         session.outcome = "no_answer"
+    elif call_status == "completed" and session.outcome == "ongoing":
+        # Hovor reálně proběhl (Twilio ho označuje jako "completed"), ale nikdy
+        # nedošlo k jasnému závěru - typicky když druhá strana zavěsí uprostřed
+        # rozhovoru. Bez tohoto by záznam zůstal navždy "⏳ Probíhá".
+        session.outcome = "no_response"
 
     log_call(
         municipality_row=session.municipality_row,
@@ -389,7 +395,7 @@ async def dashboard():
   a{color:#f0c040}
   table{border-collapse:collapse;width:100%}
   th{border:1px solid #1e2230;padding:6px 10px;color:#d4a017;text-align:left;font-size:12px}
-  td{border:1px solid #1e2230;padding:5px 10px;font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis}
+  td{border:1px solid #1e2230;padding:5px 10px;font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 </style></head>
 <body>
 <h1>ADALUX Meeting Agent</h1>

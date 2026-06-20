@@ -28,6 +28,7 @@ class Outcome:
     VOICEMAIL = "voicemail"
     NO_ANSWER = "no_answer"
     WRONG_PERSON = "wrong_person"
+    NO_RESPONSE = "no_response"  # hovor skončil bez jasného výsledku (mlčení/zavěšení uprostřed)
 
 TERMINAL = {Outcome.MEETING, Outcome.NOT_INTERESTED, Outcome.SEND_EMAIL, Outcome.VOICEMAIL}
 

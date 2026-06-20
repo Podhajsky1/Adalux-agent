@@ -28,6 +28,7 @@ OUTCOME_COLORS = {
     "voicemail":          "1a0a2e",
     "no_answer":          "1a1a1a",
     "wrong_person":       "201a0a",
+    "no_response":        "1a1010",
     "ongoing":            "141414",
 }
 
@@ -39,6 +40,7 @@ OUTCOME_LABELS = {
     "voicemail":          "📬 Vzkaz/záznamník",
     "no_answer":          "🔇 Nedostupný",
     "wrong_person":       "🔁 Špatná osoba",
+    "no_response":        "🔕 Bez odezvy / zavěšeno",
     "ongoing":            "⏳ Probíhá",
 }
 
